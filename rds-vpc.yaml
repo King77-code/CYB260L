@@ -1,80 +1,7 @@
-AWSTemplateFormatVersion: '2010-09-09'
-Description: VPC Template for Student KENWIL6223
+# Description of what this change includes
+# Revision number
+# DateAWSTemplateFormatVersion: '2010-09-09'
 
-Resources:
-  StudentVPC:
-    Type: AWS::EC2::VPC
-    Properties:
-      CidrBlock: 10.0.0.0/16
-      EnableDnsSupport: true
-      EnableDnsHostnames: true
-      Tags:
-        - Key: Name
-          Value: VPC-KENWIL6223
-
-  PublicSubnetAZ1:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref StudentVPC
-      CidrBlock: 10.0.1.0/24
-      AvailabilityZone: us-west-2a
-      MapPublicIpOnLaunch: true
-
-  PublicSubnetAZ2:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref StudentVPC
-      CidrBlock: 10.0.2.0/24
-      AvailabilityZone: us-west-2b
-      MapPublicIpOnLaunch: true
-
-  PublicSubnetAZ3:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref StudentVPC
-      CidrBlock: 10.0.3.0/24
-      AvailabilityZone: us-west-2c
-      MapPublicIpOnLaunch: true
-
-AWSTemplateFormatVersion: '2010-09-09'
-Description: VPC Template for Student KENWIL6223
-
-Resources:
-  StudentVPC:
-    Type: AWS::EC2::VPC
-    Properties:
-      CidrBlock: 10.0.0.0/16
-      EnableDnsSupport: true
-      EnableDnsHostnames: true
-      Tags:
-        - Key: Name
-          Value: VPC-KENWIL6223
-
-  PublicSubnetAZ1:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref StudentVPC
-      CidrBlock: 10.0.1.0/24
-      AvailabilityZone: us-west-2a
-      MapPublicIpOnLaunch: true
-
-  PublicSubnetAZ2:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref StudentVPC
-      CidrBlock: 10.0.2.0/24
-      AvailabilityZone: us-west-2b
-      MapPublicIpOnLaunch: true
-
-  PublicSubnetAZ3:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref StudentVPC
-      CidrBlock: 10.0.3.0/24
-      AvailabilityZone: us-west-2c
-      MapPublicIpOnLaunch: true
-
-AWSTemplateFormatVersion: '2010-09-09'
 Description: CloudFormation template to create a VPC across 3 AZs in us-west-2 for student KENWIL6223.
 
 Parameters:
@@ -84,6 +11,7 @@ Parameters:
     Description: CIDR block for the VPC.
 
 Resources:
+
   MyVPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -107,13 +35,34 @@ Resources:
       VpcId: !Ref MyVPC
       InternetGatewayId: !Ref InternetGateway
 
+  PublicSubnetAZ1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref MyVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: us-west-2a
+      MapPublicIpOnLaunch: true
+
+  PublicSubnetAZ2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref MyVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: us-west-2b
+      MapPublicIpOnLaunch: true
+
+  PublicSubnetAZ3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref MyVPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: us-west-2c
+      MapPublicIpOnLaunch: true
+
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref MyVPC
-      Tags:
-        - Key: Name
-          Value: PublicRT-KENWIL6223
 
   PublicRoute:
     Type: AWS::EC2::Route
@@ -123,15 +72,46 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
 
-  PublicSubnets:
-    Type: AWS::CloudFormation::Stack
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
     Properties:
-      TemplateURL: https://example.com/subnets-template.yaml
+      GroupDescription: Enable MySQL access
+      VpcId: !Ref MyVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 0.0.0.0/0
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for RDS
+      SubnetIds:
+        - !Ref PublicSubnetAZ1
+        - !Ref PublicSubnetAZ2
+        - !Ref PublicSubnetAZ3
+
+  RdsInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: 20
+      DBInstanceClass: db.t3.micro
+      DBInstanceIdentifier: playground-db
+      Engine: mysql
+      MasterUsername: admin
+      MasterUserPassword: CloudAcademy123!
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      PubliclyAccessible: true
+      MultiAZ: false
 
 Outputs:
   VPCId:
-    Description: The ID of the created VPC.
+    Description: The ID of the created VPC
     Value: !Ref MyVPC
-  RouteTableId:
-    Description: The ID of the public route table.
-    Value: !Ref PublicRouteTable
+
+  RDSInstanceId:
+    Description: The RDS Instance ID
+    Value: !Ref RdsInstance
